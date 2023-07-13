@@ -36,6 +36,30 @@ func dataSourceCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"domain_validation_options": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"domain_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"resource_record_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"resource_record_type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"resource_record_value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"domain": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -213,6 +237,17 @@ func dataSourceCertificateRead(ctx context.Context, d *schema.ResourceData, meta
 	d.SetId(aws.ToString(matchedCertificate.CertificateArn))
 	d.Set("arn", matchedCertificate.CertificateArn)
 	d.Set("status", matchedCertificate.Status)
+
+	var domainValidationOptions []map[string]string
+	for _, v := range matchedCertificate.DomainValidationOptions {
+		option := make(map[string]string)
+		option["domain_name"] = aws.ToString(v.DomainName)
+		option["resource_record_name"] = aws.ToString(v.ResourceRecord.Name)
+		option["resource_record_type"] = string(v.ResourceRecord.Type)
+		option["resource_record_value"] = aws.ToString(v.ResourceRecord.Value)
+		domainValidationOptions = append(domainValidationOptions, option)
+	}
+	d.Set("domain_validation_options", domainValidationOptions)
 
 	tags, err := listTags(ctx, conn, aws.ToString(matchedCertificate.CertificateArn))
 
